@@ -3,7 +3,7 @@ package com.banking.NttdataProyectoIAccountMs.business.service.impl;
 import com.banking.NttdataProyectoIAccountMs.business.repository.IAccountRepository;
 import com.banking.NttdataProyectoIAccountMs.business.service.IAccountService;
 import com.banking.NttdataProyectoIAccountMs.model.api.account.*;
-import com.banking.NttdataProyectoIAccountMs.model.entity.accountEntity;
+import com.banking.NttdataProyectoIAccountMs.model.entity.AccountEntity;
 import com.banking.NttdataProyectoIAccountMs.model.projection.AccountProjection;
 import com.banking.NttdataProyectoIAccountMs.model.proxy.business.ClientDto;
 import com.banking.NttdataProyectoIAccountMs.util.CustomException;
@@ -27,50 +27,50 @@ public class AccountServiceImpl implements IAccountService {
     private final WebClient webClient;
 
 
-    @Autowired
-    public AccountServiceImpl(IAccountRepository bankAccountRepository) {
-        this.bankAccountRepository = bankAccountRepository;
-        this.webClient = WebClient.builder()
-                .baseUrl("http://localhost:8080")
-                .build();
-    }
+        @Autowired
+        public AccountServiceImpl(IAccountRepository bankAccountRepository) {
+            this.bankAccountRepository = bankAccountRepository;
+            this.webClient = WebClient.builder()
+                    .baseUrl("http://localhost:8080")
+                    .build();
+        }
 
-    @Override
-    public Mono<AccountDto> createAcountbyClient(CreateAccountRequest request) {
-        return webClient.get()
-                .uri("/clientes/{clienteId}", request.getClienteId())
-                .retrieve()
-                .onStatus(
-                        status -> status.is4xxClientError() && status.value() == 404,
-                        clientResponse -> Mono.error(new RuntimeException("Cliente con ID " + request.getClienteId() + " no encontrado"))
-                )
-                .bodyToMono(ClientDto.class)
-                .doOnNext(clientDto -> System.out.println("Cliente encontrado: " + clientDto))
-                .doOnError(error -> System.err.println("Error llamando al servicio de cliente: " + error.getMessage()))
-                .flatMap(clientDto -> {
-                    accountEntity bankAccount = accountEntity.builder()
-                            .numeroCuenta(generateAccountNumber())
-                            .saldo(0.0)
-                            .tipoCuenta(request.getTipoCuenta())
-                            .clienteId(request.getClienteId())
-                            .build();
+        @Override
+        public Mono<AccountDto> createAcountbyClient(CreateAccountRequest request) {
+            return webClient.get()
+                    .uri("/clientes/{clienteId}", request.getClienteId())
+                    .retrieve()
+                    .onStatus(
+                            status -> status.is4xxClientError() && status.value() == 404,
+                            clientResponse -> Mono.error(new RuntimeException("Cliente con ID " + request.getClienteId() + " no encontrado"))
+                    )
+                    .bodyToMono(ClientDto.class)
+                    .doOnNext(clientDto -> System.out.println("Cliente encontrado: " + clientDto))
+                    .doOnError(error -> System.err.println("Error llamando al servicio de cliente: " + error.getMessage()))
+                    .flatMap(clientDto -> {
+                        AccountEntity bankAccount = AccountEntity.builder()
+                                .numeroCuenta(generateAccountNumber())
+                                .saldo(0.0)
+                                .tipoCuenta(request.getTipoCuenta())
+                                .clienteId(request.getClienteId())
+                                .build();
 
-                    return bankAccountRepository.save(bankAccount)
-                            .map(savedAccount -> AccountDto.builder()  // Conversión directa aquí
-                                    .id(savedAccount.getId())
-                                    .numeroCuenta(savedAccount.getNumeroCuenta())
-                                    .saldo(savedAccount.getSaldo())
-                                    .tipoCuenta(savedAccount.getTipoCuenta())
-                                    .clienteId(savedAccount.getClienteId())
-                                    .build());
-                })
-                .onErrorResume(error -> {
-                    if (error instanceof RuntimeException && error.getMessage().contains("Cliente con ID")) {
-                        return Mono.error(new RuntimeException("Cliente no encontrado: " + request.getClienteId()));
-                    }
-                    return Mono.error(new RuntimeException("Error inesperado: " + error.getMessage()));
-                });
-    }
+                        return bankAccountRepository.save(bankAccount)
+                                .map(savedAccount -> AccountDto.builder()  // Conversión directa aquí
+                                        .id(savedAccount.getId())
+                                        .numeroCuenta(savedAccount.getNumeroCuenta())
+                                        .saldo(savedAccount.getSaldo())
+                                        .tipoCuenta(savedAccount.getTipoCuenta())
+                                        .clienteId(savedAccount.getClienteId())
+                                        .build());
+                    })
+                    .onErrorResume(error -> {
+                        if (error instanceof RuntimeException && error.getMessage().contains("Cliente con ID")) {
+                            return Mono.error(new RuntimeException("Cliente no encontrado: " + request.getClienteId()));
+                        }
+                        return Mono.error(new RuntimeException("Error inesperado: " + error.getMessage()));
+                    });
+        }
 
     @Override
     public Mono<AccountDto> depositoryByClient(Long cuentaId, Double monto) {
@@ -128,7 +128,7 @@ public class AccountServiceImpl implements IAccountService {
                 .onErrorResume(e -> Mono.error(new RuntimeException("Error al eliminar la cuenta: " + e.getMessage())));
     }
 
-    private Mono<accountEntity> validateWithdrawal(accountEntity account, Double monto) {
+    private Mono<AccountEntity> validateWithdrawal(AccountEntity account, Double monto) {
         if ("AHORROS".equals(account.getTipoCuenta()) && account.getSaldo() - monto < 0) {
             return Mono.error(new CustomException("Saldo insuficiente para cuentas de ahorro", 400));
         }
@@ -138,7 +138,7 @@ public class AccountServiceImpl implements IAccountService {
         return Mono.just(account);
     }
 
-    private Mono<AccountDto> performWithdrawal(accountEntity account, Double monto) {
+    private Mono<AccountDto> performWithdrawal(AccountEntity account, Double monto) {
         account.setSaldo(account.getSaldo() - monto);
         return bankAccountRepository.save(account)
                 .map(savedAccount -> AccountDto.builder()

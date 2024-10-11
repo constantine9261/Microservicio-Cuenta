@@ -14,7 +14,7 @@ import java.io.Serializable;
 @ToString
 @Builder
 @Table(value = "cuentas")
-public class accountEntity implements Serializable {
+public class AccountEntity implements Serializable {
 
     private static final long serialVersionUID = 7982069006616095393L;
 
