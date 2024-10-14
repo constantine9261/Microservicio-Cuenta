@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -213,6 +214,25 @@ public class AccountServiceImpl implements IAccountService {
                             .build();
                 })
                 .switchIfEmpty(Mono.error(new RuntimeException("Cuenta no encontrada con ID: " + cuentaId)));
+    }
+
+    public Mono<AccountDto> actualizarSaldo(Integer id, BigDecimal nuevoSaldo) {
+        return bankAccountRepository.findById(Long.valueOf(id))
+                .flatMap(cuenta -> {
+                    cuenta.setSaldo(nuevoSaldo.doubleValue()); // Actualiza el saldo
+                    return bankAccountRepository.save(cuenta); // Guarda la cuenta actualizada
+                })
+                .map(this::convertirADto); // Convierte la entidad a DTO
+    }
+
+    private AccountDto convertirADto(AccountEntity accountEntity) {
+        return AccountDto.builder()
+                .id(accountEntity.getId()) // Mapea el ID de la entidad al DTO
+                .numeroCuenta(accountEntity.getNumeroCuenta()) // Mapea el número de cuenta
+                .saldo(accountEntity.getSaldo()) // Mapea el saldo actual
+                .tipoCuenta(accountEntity.getTipoCuenta()) // Mapea el tipo de cuenta
+                .clienteId(accountEntity.getClienteId()) // Mapea el ID del cliente asociado
+                .build(); // Crea y devuelve el DTO
     }
 
 }

@@ -16,8 +16,11 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping(ApiPath.CUENTAS_ENDPOINT)
@@ -433,4 +436,12 @@ public class AccountController {
         return accountService.withdrawByClient(cuentaId,monto)
                 .map(ResponseUtil::getSuccessfulResponse);
     }
+
+
+    @PutMapping("/{id}/saldo")
+    public Mono<ResponseDto<AccountDto>> actualizarSaldo(@PathVariable Integer id, @RequestBody BigDecimal nuevoSaldo) {
+        return accountService.actualizarSaldo(id,nuevoSaldo)
+                .map(ResponseUtil::getSuccessfulResponse);
+    }
+
 }
